@@ -12,6 +12,7 @@ import cli.command.PauseCommand;
 import cli.command.StopCommand;
 import cli.command.SuccessorInfo;
 import servent.SimpleServentListener;
+import sillygit.cli.command.GitAddCommand;
 
 /**
  * A simple CLI parser. Each command has a name and arbitrary arguments.
@@ -43,9 +44,9 @@ public class CLIParser implements Runnable, Cancellable {
 		commandList.add(new InfoCommand());
 		commandList.add(new PauseCommand());
 		commandList.add(new SuccessorInfo());
-		commandList.add(new DHTGetCommand());
-		commandList.add(new DHTPutCommand());
 		commandList.add(new StopCommand(this, listener));
+
+		commandList.add(new GitAddCommand());
 	}
 	
 	@Override

@@ -9,16 +9,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import servent.message.AskGetMessage;
 import servent.message.PutMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
 import sillygit.util.FileInfo;
+import sillygit.util.FileUtils;
 
 /**
  * This class implements all the logic required for Chord to function.
@@ -46,9 +45,6 @@ import sillygit.util.FileInfo;
 public class ChordState {
 
 	public static int CHORD_SIZE;
-	public static int oldChordHash(int value) {
-		return 61 * value % CHORD_SIZE;
-	}
 
 	public static int chordHash(String value) {
 
@@ -343,44 +339,84 @@ public class ChordState {
 	}
 
 	/**
-	 * The Chord put operation. Stores locally if key is ours, otherwise sends it on.
+	 * Adds the file to storage if it's not already present.
+	 * @param fileInfo - Object containing all relevent information about the file.
 	 */
-	public void putValue(int key, int value) {
+	public void gitAdd(FileInfo fileInfo) {
+
+		int key = ChordState.chordHash(fileInfo.getPath());
 		if (isKeyMine(key)) {
-			valueMap.put(key, value);
+			//Proverimo da li vec imamo fajl
+			if (storageMap.containsKey(key))
+				AppConfig.timestampedStandardPrint("We already have " + fileInfo.getPath() + ".");
+
+			//Dodajemo kopiju podatka o datoteci
+			storageMap.put(key, new FileInfo(fileInfo));
+			//Verzija bi trebalo da bude 0, nije bitna za direktorijume
+			versionMap.put(key, fileInfo.getVersion());
+
+			//Ako je u pitanju fajl, napravimo datoteku, a ako je datoteka, samo cuvamo podatak o njoj
+			if (fileInfo.isFile()) {
+				if (!FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
+					AppConfig.timestampedErrorPrint("Failed to store " + fileInfo.getPath() + ".");
+				}
+			}
 		} else {
+			AppConfig.timestampedStandardPrint("Not our key, forwarding the file " + fileInfo.getPath() + ".");
+
 			ServentInfo nextNode = getNextNodeForKey(key);
 			PutMessage pm = new PutMessage(
 					AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-					nextNode.getIpAddress(), nextNode.getListenerPort(), key, value);
+					nextNode.getIpAddress(), nextNode.getListenerPort(), fileInfo);
 			MessageUtil.sendMessage(pm);
 		}
+
+		AppConfig.timestampedStandardPrint("File " + fileInfo.getPath() + " stored successfully.");
+
 	}
-	
-	/**
-	 * The chord get operation. Gets the value locally if key is ours, otherwise asks someone else to give us the value.
-	 * @return <ul>
-	 *			<li>The value, if we have it</li>
-	 *			<li>-1 if we own the key, but there is nothing there</li>
-	 *			<li>-2 if we asked someone else</li>
-	 *		   </ul>
-	 */
-	public int getValue(int key) {
-		if (isKeyMine(key)) {
-			if (valueMap.containsKey(key)) {
-				return valueMap.get(key);
-			} else {
-				return -1;
-			}
-		}
-		
-		ServentInfo nextNode = getNextNodeForKey(key);
-		AskGetMessage agm = new AskGetMessage(
-				AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-				nextNode.getIpAddress(), nextNode.getListenerPort(), String.valueOf(key));
-		MessageUtil.sendMessage(agm);
-		
-		return -2;
+
+	//	/**
+//	 * The chord get operation. Gets the value locally if key is ours, otherwise asks someone else to give us the value.
+//	 * @return <ul>
+//	 *			<li>The value, if we have it</li>
+//	 *			<li>-1 if we own the key, but there is nothing there</li>
+//	 *			<li>-2 if we asked someone else</li>
+//	 *		   </ul>
+//	 */
+//	public int getValue(int key) {
+//		if (isKeyMine(key)) {
+//			if (valueMap.containsKey(key)) {
+//				return valueMap.get(key);
+//			} else {
+//				return -1;
+//			}
+//		}
+//
+//		ServentInfo nextNode = getNextNodeForKey(key);
+//		AskGetMessage agm = new AskGetMessage(
+//				AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+//				nextNode.getIpAddress(), nextNode.getListenerPort(), String.valueOf(key));
+//		MessageUtil.sendMessage(agm);
+//
+//		return -2;
+//	}
+
+	public void gitPull() {
+
+
+
+	}
+
+	public void gitCommit() {
+
+
+
+	}
+
+	public void gitRemove() {
+
+
+
 	}
 
 }
