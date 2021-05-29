@@ -1,0 +1,6 @@
+- Izmeniti ChordState da radi sa strukturom <integer, fileinfo>
+- Izmeniti postojece poruke da rade sa novom strukturuom <integer, fileinfo> kako bi se omogucilo
+  prenosenje fajlova kroz sistem umesto brojeva.
+- Odraditi sve osnovne komande sa rad sa fajlovima.
+- Odraditi iskljucivanje cvora iz sistema.
+- Razresavanja konflikta.

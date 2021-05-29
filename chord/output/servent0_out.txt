@@ -1,0 +1,22 @@
+11:18:52 - Starting servent [39|localhost|1100]
+11:18:52 - Pausing for 50000 ms
+11:18:52 - First node in Chord system.
+11:19:02 - Got message [55|localhost:1200|0||NEW_NODE|localhost:1100|39]
+11:19:04 - Sending message [39|localhost:1100|0||WELCOME|localhost:1200|55]
+11:19:05 - Got message [55|localhost:1200|1||UPDATE|localhost:1100|39]
+11:19:06 - Sending message [55|localhost:1200|1|localhost:1100|UPDATE|localhost:1200|55]
+11:19:13 - Got message [53|localhost:1300|0||NEW_NODE|localhost:1100|39]
+11:19:14 - Sending message [53|localhost:1300|2||NEW_NODE|localhost:1200|55]
+11:19:17 - Got message [53|localhost:1300|3|localhost:1200|UPDATE|localhost:1100|39]
+11:19:18 - Sending message [53|localhost:1300|3|localhost:1200,localhost:1100|UPDATE|localhost:1300|53]
+11:19:24 - Got message [60|localhost:1400|4||NEW_NODE|localhost:1100|39]
+11:19:26 - Sending message [39|localhost:1100|4||WELCOME|localhost:1400|60]
+11:19:26 - Got message [60|localhost:1400|1||UPDATE|localhost:1100|39]
+11:19:27 - Sending message [60|localhost:1400|5|localhost:1100|UPDATE|localhost:1300|53]
+11:19:36 - Got message [27|localhost:1600|2||NEW_NODE|localhost:1100|39]
+11:19:37 - Sending message [39|localhost:1100|6||WELCOME|localhost:1600|27]
+11:19:38 - Got message [27|localhost:1600|1||UPDATE|localhost:1100|39]
+11:19:39 - Sending message [27|localhost:1600|7|localhost:1100|UPDATE|localhost:1300|53]
+11:19:42 - Pausing for 10000 ms
+11:19:43 - Sending message [39|localhost:1100|8|2:5|PUT|localhost:1300|53]
+11:19:52 - Stopping...

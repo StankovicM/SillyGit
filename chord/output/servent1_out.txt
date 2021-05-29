@@ -1,0 +1,27 @@
+11:19:02 - Starting servent [55|localhost|1200]
+11:19:02 - Pausing for 40000 ms
+11:19:02 - Sending message [55|localhost:1200|0||NEW_NODE|localhost:1100|39]
+11:19:04 - Got message [39|localhost:1100|0||WELCOME|localhost:1200|55]
+11:19:05 - Sending message [55|localhost:1200|1||UPDATE|localhost:1100|39]
+11:19:06 - Got message [55|localhost:1200|1|localhost:1100|UPDATE|localhost:1200|55]
+11:19:14 - Got message [53|localhost:1300|2||NEW_NODE|localhost:1200|55]
+11:19:15 - Sending message [55|localhost:1200|2||WELCOME|localhost:1300|53]
+11:19:16 - Got message [53|localhost:1300|1||UPDATE|localhost:1200|55]
+11:19:17 - Sending message [53|localhost:1300|3|localhost:1200|UPDATE|localhost:1100|39]
+11:19:23 - Got message [60|localhost:1400|0||NEW_NODE|localhost:1200|55]
+11:19:24 - Sending message [60|localhost:1400|4||NEW_NODE|localhost:1100|39]
+11:19:28 - Got message [60|localhost:1400|2|localhost:1100,localhost:1300|UPDATE|localhost:1200|55]
+11:19:30 - Sending message [60|localhost:1400|5|localhost:1100,localhost:1300,localhost:1200|UPDATE|localhost:1400|60]
+11:19:34 - Got message [27|localhost:1600|3||NEW_NODE|localhost:1200|55]
+11:19:36 - Sending message [27|localhost:1600|6||NEW_NODE|localhost:1400|60]
+11:19:40 - Got message [27|localhost:1600|4|localhost:1100,localhost:1300|UPDATE|localhost:1200|55]
+11:19:40 - Sending message [27|localhost:1600|7|localhost:1100,localhost:1300,localhost:1200|UPDATE|localhost:1400|60]
+11:19:42 - Pausing for 5000 ms
+11:19:44 - Got message [53|localhost:1300|5|2:5|PUT|localhost:1200|55]
+11:19:46 - Sending message [55|localhost:1200|8|2:5|PUT|localhost:1400|60]
+11:19:47 - Please wait...
+11:19:47 - Pausing for 5000 ms
+11:19:48 - Sending message [55|localhost:1200|9|2|ASK_GET|localhost:1400|60]
+11:19:50 - Got message [27|localhost:1600|2|2:5|TELL_GET|localhost:1200|55]
+11:19:50 - 2:5
+11:19:52 - Stopping...
