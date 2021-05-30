@@ -16,20 +16,19 @@ public class GitAddCommand implements CLICommand {
     public void execute(String args) {
 
         if (args == null || args.isEmpty()) {
-            AppConfig.timestampedStandardPrint("Invalid argument for add command. Should be add name.");
+            AppConfig.timestampedStandardPrint("Invalid argument for add command. Should be add path.");
             return;
         }
 
-        String name = args.replace('/' , '\\');
-        String path = AppConfig.WORKING_DIR + "\\" + name;
+        String path = args.replace('/' , '\\');
 
-        if (FileUtils.isPathFile(path)) {
-            FileInfo fileInfo = FileUtils.getFileInfoFromPath(path);
+        if (FileUtils.isPathFile(AppConfig.WORKING_DIR, path)) {
+            FileInfo fileInfo = FileUtils.getFileInfoFromPath(AppConfig.WORKING_DIR, path);
             if (fileInfo != null) {
                 AppConfig.chordState.gitAdd(fileInfo);
             }
         } else {
-            List<FileInfo> fileInfoList = FileUtils.getDirectoryInfoFromPath(path);
+            List<FileInfo> fileInfoList = FileUtils.getDirectoryInfoFromPath(AppConfig.WORKING_DIR, path);
             if (!fileInfoList.isEmpty()) {
                 for (FileInfo fileInfo : fileInfoList) {
                     AppConfig.chordState.gitAdd(fileInfo);

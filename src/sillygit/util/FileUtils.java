@@ -10,24 +10,25 @@ import java.util.Queue;
 
 public class FileUtils {
 
-    public static boolean isPathDirectory(String path) {
+    public static boolean isPathDirectory(String rootDirectory, String path) {
 
-        File f = new File(path);
+        File f = new File(rootDirectory + "\\" + path);
 
         return f.isDirectory();
 
     }
 
-    public static boolean isPathFile(String path) {
+    public static boolean isPathFile(String rootDirectory, String path) {
 
-        File f = new File(path);
+        File f = new File(rootDirectory + "\\" + path);
 
         return f.isFile();
 
     }
 
-    public static FileInfo getFileInfoFromPath(String path) {
+    public static FileInfo getFileInfoFromPath(String rootDirectory, String path) {
 
+        path = rootDirectory + "\\" + path;
         File f = new File(path);
         if (!f.exists()) {
             AppConfig.timestampedErrorPrint("File " + path + " doesn't exist.");
@@ -40,7 +41,7 @@ public class FileUtils {
         }
 
         try {
-            String filePath = path.replace(AppConfig.WORKING_DIR + "\\", "");
+            String filePath = path.replace(rootDirectory + "\\", "");
 
             BufferedReader reader = new BufferedReader(new FileReader(f));
             StringBuilder fileContent = new StringBuilder();
@@ -62,10 +63,11 @@ public class FileUtils {
 
     }
 
-    public static List<FileInfo> getDirectoryInfoFromPath(String path) {
+    public static List<FileInfo> getDirectoryInfoFromPath(String rootDirectory, String path) {
 
         List<FileInfo> fileInfoList = new ArrayList<>();
 
+        path = rootDirectory + "\\" + path;
         File f = new File(path);
         if (!f.exists()) {
             AppConfig.timestampedErrorPrint("Directory " + path + " doesn't exist.");
@@ -86,11 +88,11 @@ public class FileUtils {
 
             File dir = new File(dirPath);
             for (File file : dir.listFiles()) {
-                String filePath = file.getPath().replace(AppConfig.WORKING_DIR + "\\", "");
+                String filePath = file.getPath().replace(rootDirectory + "\\", "");
                 subFiles.add(filePath);
 
                 if (file.isFile()) {
-                    FileInfo fileInfo = getFileInfoFromPath(file.getPath());
+                    FileInfo fileInfo = getFileInfoFromPath(rootDirectory, filePath);
                     if (fileInfo != null) {
                         fileInfoList.add(fileInfo);
                     }
@@ -99,7 +101,7 @@ public class FileUtils {
                 }
             }
 
-            dirPath = dirPath.replace(AppConfig.WORKING_DIR + "\\", "");
+            dirPath = dirPath.replace(rootDirectory + "\\", "");
             fileInfoList.add(new FileInfo(dirPath, subFiles));
         }
 

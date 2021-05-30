@@ -67,4 +67,17 @@ public class FileInfo implements Serializable {
 
     }
 
+    @Override
+    public String toString() {
+
+        String toReturn;
+        if (isDirectory)
+            toReturn = "[" + getPath() + " {" + getSubFiles() + "}]";
+        else
+            toReturn = "[" + getPath() + " <" + getVersion() + ">]";
+
+        return toReturn;
+
+    }
+
 }

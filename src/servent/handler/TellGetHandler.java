@@ -1,12 +1,17 @@
 package servent.handler;
 
 import app.AppConfig;
+import app.ChordState;
+import app.ServentInfo;
 import servent.message.Message;
 import servent.message.MessageType;
+import servent.message.TellGetMessage;
+import servent.message.util.MessageUtil;
+import sillygit.util.PullCollector;
 
 public class TellGetHandler implements MessageHandler {
 
-	private Message clientMessage;
+	private final Message clientMessage;
 	
 	public TellGetHandler(Message clientMessage) {
 		this.clientMessage = clientMessage;
@@ -15,22 +20,19 @@ public class TellGetHandler implements MessageHandler {
 	@Override
 	public void run() {
 		if (clientMessage.getMessageType() == MessageType.TELL_GET) {
-			String parts[] = clientMessage.getMessageText().split(":");
-			
-			if (parts.length == 2) {
-				try {
-					int key = Integer.parseInt(parts[0]);
-					int value = Integer.parseInt(parts[1]);
-					if (value == -1) {
-						AppConfig.timestampedStandardPrint("No such key: " + key);
-					} else {
-						AppConfig.timestampedStandardPrint(clientMessage.getMessageText());
-					}
-				} catch (NumberFormatException e) {
-					AppConfig.timestampedErrorPrint("Got TELL_GET message with bad text: " + clientMessage.getMessageText());
-				}
+			TellGetMessage tellGetMessage = (TellGetMessage) clientMessage;
+
+			String requester = tellGetMessage.getRequesterIpAddress() + ":" + tellGetMessage.getRequesterPort();
+			int key = ChordState.chordHash(requester);
+			if (key == AppConfig.myServentInfo.getChordId()) {
+				PullCollector.addFileInfo(tellGetMessage.getFileInfo());
 			} else {
-				AppConfig.timestampedErrorPrint("Got TELL_GET message with bad text: " + clientMessage.getMessageText());
+				ServentInfo nextNode = AppConfig.chordState.getNextNodeForKey(key);
+				Message tellMessage = new TellGetMessage(
+						tellGetMessage.getSenderIpAddress(), tellGetMessage.getSenderPort(),
+						nextNode.getIpAddress(), nextNode.getListenerPort(),
+						tellGetMessage.getRequesterIpAddress(), tellGetMessage.getRequesterPort(), tellGetMessage.getFileInfo());
+				MessageUtil.sendMessage(tellMessage);
 			}
 		} else {
 			AppConfig.timestampedErrorPrint("Tell get handler got a message that is not TELL_GET");

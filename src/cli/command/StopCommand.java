@@ -3,6 +3,7 @@ package cli.command;
 import app.AppConfig;
 import cli.CLIParser;
 import servent.SimpleServentListener;
+import sillygit.util.PullCollector;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -29,6 +30,7 @@ public class StopCommand implements CLICommand {
 		AppConfig.timestampedStandardPrint("Stopping...");
 		parser.stop();
 		listener.stop();
+		PullCollector.stop();
 
 		String bsAddress = AppConfig.BOOTSTRAP_ADDRESS;
 		int bsPort = AppConfig.BOOTSTRAP_PORT;

@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import servent.message.AskGetMessage;
+import servent.message.Message;
 import servent.message.PutMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
@@ -361,6 +363,8 @@ public class ChordState {
 					AppConfig.timestampedErrorPrint("Failed to store " + fileInfo.getPath() + ".");
 				}
 			}
+
+			AppConfig.timestampedStandardPrint("File " + fileInfo.getPath() + " stored successfully.");
 		} else {
 			AppConfig.timestampedStandardPrint("Not our key, forwarding the file " + fileInfo.getPath() + ".");
 
@@ -370,8 +374,6 @@ public class ChordState {
 					nextNode.getIpAddress(), nextNode.getListenerPort(), fileInfo);
 			MessageUtil.sendMessage(pm);
 		}
-
-		AppConfig.timestampedStandardPrint("File " + fileInfo.getPath() + " stored successfully.");
 
 	}
 
@@ -401,9 +403,53 @@ public class ChordState {
 //		return -2;
 //	}
 
-	public void gitPull() {
+	public FileInfo gitPull(String path, int version, String requesterIp, int requesterPort) {
 
+		int key = ChordState.chordHash(path);
+		FileInfo toReturn = null;
+		if (isKeyMine(key)) {
+			//Proverimo da li imamo ovaj fajl
+			if (storageMap.containsKey(key)) {
+				FileInfo localFile = storageMap.get(key);
 
+				//Ako je u pitanju direktorijum, vracamo podatak o njemu
+				if (localFile.isDirectory()) {
+					if (version != -1)
+						AppConfig.timestampedStandardPrint("Can't specify version for a directory.");
+
+					toReturn = new FileInfo(localFile);
+				} else {
+					//Ako je u pitanju fajl, proverimo da li je prosledjena verzija, ako nije uzmemo najnoviju
+					if (version == -1)
+						version = versionMap.get(key);
+
+					//Proverimo da li je korisnik zatrazio noviju verziju nego sto postoji
+					if (version > versionMap.get(key)) {
+						AppConfig.timestampedStandardPrint("Version " + version +
+								" doesn't exist, retrieving latest version: " + versionMap.get(key) + ".");
+						version = versionMap.get(key);
+					}
+
+					//Ucitamo fajl iz skladista
+					String filePath = path + "." + version;
+					FileInfo fileInfo = FileUtils.getFileInfoFromPath(AppConfig.STORAGE_DIR, filePath);
+					if (fileInfo != null) {
+						toReturn = new FileInfo(localFile.getPath(), fileInfo.getContent(), version);
+					}
+				}
+			} else {
+				AppConfig.timestampedStandardPrint("We have the key, but file " + path + "<" + key + "> doesn't exist.");
+			}
+		} else {
+			AppConfig.timestampedStandardPrint("Not our key, forwarding the pull request for " + path + ", version " + version + ".");
+
+			ServentInfo nextNode = getNextNodeForKey(key);
+			Message askMessage = new AskGetMessage(requesterIp, requesterPort,
+					nextNode.getIpAddress(), nextNode.getListenerPort(), path, version);
+			MessageUtil.sendMessage(askMessage);
+		}
+
+		return toReturn;
 
 	}
 
