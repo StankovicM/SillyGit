@@ -10,6 +10,12 @@ import java.util.Queue;
 
 public class FileUtils {
 
+    /**
+     * Checks if the given path is a directory.
+     * @param rootDirectory Directory where to look for the path.
+     * @param path Path that needs to be checked.
+     * @return true if the path is a directory, false if it is a file.
+     */
     public static boolean isPathDirectory(String rootDirectory, String path) {
 
         File f = new File(rootDirectory + "\\" + path);
@@ -18,6 +24,12 @@ public class FileUtils {
 
     }
 
+    /**
+     * Checks if the given path is a file.
+     * @param rootDirectory Directory where to look for the path.
+     * @param path Path that needs to be checked.
+     * @return true if the path is a file, false if it is a dirctory.
+     */
     public static boolean isPathFile(String rootDirectory, String path) {
 
         File f = new File(rootDirectory + "\\" + path);
@@ -26,6 +38,13 @@ public class FileUtils {
 
     }
 
+    /**
+     * Reads the file and returns all of the needed information.
+     * @param rootDirectory Directory where to look for the file.
+     * @param path Path to the file relative to it's root directory.
+     * @return FileInfo object for the specified file if it exists, null if it doesn't or
+     * if an error has been encountered.
+     */
     public static FileInfo getFileInfoFromPath(String rootDirectory, String path) {
 
         path = rootDirectory + "\\" + path;
@@ -63,6 +82,14 @@ public class FileUtils {
 
     }
 
+    /**
+     * Returns a list of FileInfo objects for the specified directory and all of it's
+     * sub-directories and files within.
+     * @param rootDirectory Directory where to look for the file.
+     * @param path Path of the directory relative to it's root directory.
+     * @return List containing all of the FileInfo objects. If none were found or
+     * couldn't be read, the list will be empty.
+     */
     public static List<FileInfo> getDirectoryInfoFromPath(String rootDirectory, String path) {
 
         List<FileInfo> fileInfoList = new ArrayList<>();
@@ -109,6 +136,15 @@ public class FileUtils {
 
     }
 
+    /**
+     * Stores a file in the specified root directory.
+     * @param rootDirectory Directory where to store the actual file.
+     * @param fileInfo All relevant information about the file.
+     * @param storeVersion Specifies whether the version needs to be stored as well.
+     *                     Should be true when storing files in permanent storage and
+     *                     false when retrieving them into the working directory.
+     * @return true if the file was stored successfully, false otherwise.
+     */
     public static boolean storeFile(String rootDirectory, FileInfo fileInfo, boolean storeVersion) {
 
         //Prvo napravimo sve direktorijume iznad ovog fajla ako ih ima
@@ -132,6 +168,44 @@ public class FileUtils {
         } catch (IOException e) {
             e.printStackTrace();
             return false;
+        }
+
+        return true;
+
+    }
+
+    /**
+     * Stores a directory and all of it's sub-directories and files within in the specified root directory.
+     * @param rootDirectory Directory where to store the actual directory.
+     * @param fileInfoList List containing FileInfo objects for the specified directory and all of it's
+     *                     sub-directories and files within.
+     * @param topDirectory Path of the top directory relative to it's root directory.
+     * @return true if the directory was stored successfully, false otherwise.
+     */
+    public static boolean storeDirectory(String rootDirectory, List<FileInfo> fileInfoList, String topDirectory) {
+
+        Queue<String> pendingFiles = new LinkedList<>();
+        pendingFiles.add(topDirectory);
+
+        //Vrtimo se u petlji dok ne kreiramo sve fajlove i foldere koji su prosledjeni
+        while (!pendingFiles.isEmpty()) {
+            String path = pendingFiles.poll();
+            FileInfo fileInfo = fileInfoList.get(0);
+            for (FileInfo fi : fileInfoList) {
+                if (fi.getPath().equals(path)) {
+                    fileInfo = fi;
+                    break;
+                }
+            }
+
+            if (fileInfo.isFile()) {
+                if (!storeFile(rootDirectory, fileInfo, false)) {
+                    return false;
+                }
+            } else {
+                //Vec ce biti napravljeni svi potrebni folderi ja mislim
+                pendingFiles.addAll(fileInfo.getSubFiles());
+            }
         }
 
         return true;

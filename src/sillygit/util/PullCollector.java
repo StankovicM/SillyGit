@@ -27,7 +27,7 @@ public class PullCollector implements Runnable {
     @Override
     public void run() {
 
-        /*TODO
+        /*
          * Korak 1: pozovemo gitPull i cekamo da dobijemo odgovor
          * Korak 2: proverimo da li smo dobili fajl ili folder
          * Korak 3: ako je fajl, zapisemo ga u working directory, i zavrsavamo
@@ -108,18 +108,18 @@ public class PullCollector implements Runnable {
         }
 
         if (working && !timeout) {
-            AppConfig.timestampedStandardPrint("Pulled file(s) successfully " + fileInfoList.size());
+            AppConfig.timestampedStandardPrint("Pulled " + fileInfoList.size() + " file(s) successfully.");
 
-            //TODO napraviti novu metodu u fileutils koja ce napraviti od ove liste strukturu fajlova
+            if (fileInfoList.size() == 1) {
+                FileUtils.storeFile(AppConfig.WORKING_DIR, fileInfoList.get(0), false);
+            } else {
+                FileUtils.storeDirectory(AppConfig.WORKING_DIR, fileInfoList, path);
+            }
         }
 
     }
 
-    public static void addFileInfo(FileInfo fileInfo) {
-
-        collectedFileInfo.add(fileInfo);
-
-    }
+    public static void addFileInfo(FileInfo fileInfo) { collectedFileInfo.add(fileInfo); }
 
     public static void stop() { working = false; }
 

@@ -342,7 +342,7 @@ public class ChordState {
 
 	/**
 	 * Adds the file to storage if it's not already present.
-	 * @param fileInfo - Object containing all relevent information about the file.
+	 * @param fileInfo Object containing all relevent information about the file.
 	 */
 	public void gitAdd(FileInfo fileInfo) {
 
@@ -377,32 +377,14 @@ public class ChordState {
 
 	}
 
-	//	/**
-//	 * The chord get operation. Gets the value locally if key is ours, otherwise asks someone else to give us the value.
-//	 * @return <ul>
-//	 *			<li>The value, if we have it</li>
-//	 *			<li>-1 if we own the key, but there is nothing there</li>
-//	 *			<li>-2 if we asked someone else</li>
-//	 *		   </ul>
-//	 */
-//	public int getValue(int key) {
-//		if (isKeyMine(key)) {
-//			if (valueMap.containsKey(key)) {
-//				return valueMap.get(key);
-//			} else {
-//				return -1;
-//			}
-//		}
-//
-//		ServentInfo nextNode = getNextNodeForKey(key);
-//		AskGetMessage agm = new AskGetMessage(
-//				AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-//				nextNode.getIpAddress(), nextNode.getListenerPort(), String.valueOf(key));
-//		MessageUtil.sendMessage(agm);
-//
-//		return -2;
-//	}
-
+	/**
+	 * Retrieves the file or directory from storage if it's present.
+	 * @param path File or directory path relative to it's root directory.
+	 * @param version Version of the file to be retrieved. Will be ignored for directories.
+	 * @param requesterIp IP address of the node who requested the file or directory.
+	 * @param requesterPort Port on which the requesting node listens on.
+	 * @return FileInfo object if the file is present, null otherwise.
+	 */
 	public FileInfo gitPull(String path, int version, String requesterIp, int requesterPort) {
 
 		int key = ChordState.chordHash(path);
