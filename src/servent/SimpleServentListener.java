@@ -20,6 +20,7 @@ import servent.handler.UpdateHandler;
 import servent.handler.WelcomeHandler;
 import servent.message.Message;
 import servent.message.util.MessageUtil;
+import sillygit.servent.handler.RemoveHandler;
 
 public class SimpleServentListener implements Runnable, Cancellable {
 
@@ -86,6 +87,9 @@ public class SimpleServentListener implements Runnable, Cancellable {
 					break;
 				case TELL_GET:
 					messageHandler = new TellGetHandler(clientMessage);
+					break;
+				case REMOVE:
+					messageHandler = new RemoveHandler(clientMessage);
 					break;
 				case POISON:
 					break;

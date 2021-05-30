@@ -18,6 +18,7 @@ import servent.message.Message;
 import servent.message.PutMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
+import sillygit.servent.message.RemoveMessage;
 import sillygit.util.FileInfo;
 import sillygit.util.FileUtils;
 
@@ -308,12 +309,12 @@ public class ChordState {
 		allNodeInfo.addAll(newNodes);
 		
 		allNodeInfo.sort(new Comparator<ServentInfo>() {
-			
+
 			@Override
 			public int compare(ServentInfo o1, ServentInfo o2) {
 				return o1.getChordId() - o2.getChordId();
 			}
-			
+
 		});
 		
 		List<ServentInfo> newList = new ArrayList<>();
@@ -441,9 +442,41 @@ public class ChordState {
 
 	}
 
-	public void gitRemove() {
+	/**
+	 * Removes the specified file or directory from the system.
+	 * @param path Path to the file or directory.
+	 */
+	public void gitRemove(String path) {
 
+		int key = ChordState.chordHash(path);
+		if (isKeyMine(key)) {
+			if (storageMap.containsKey(key)) {
+				FileInfo fileInfo = storageMap.remove(key);
+				int version = versionMap.remove(key);
 
+				if (fileInfo.isFile()) {
+					for (int i = version; i >= 0; i--) {
+						String filePath = path + "." + i;
+						FileUtils.removeFile(AppConfig.STORAGE_DIR, filePath);
+					}
+				} else {
+					for (String toRemove : fileInfo.getSubFiles()) {
+						int toRemoveKey = ChordState.chordHash(toRemove);
+						ServentInfo nextNode = getNextNodeForKey(toRemoveKey);
+						Message removeMessage = new RemoveMessage(
+								AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+								nextNode.getIpAddress(), nextNode.getListenerPort(), toRemove);
+						MessageUtil.sendMessage(removeMessage);
+					}
+				}
+			}
+		} else {
+			ServentInfo nextNode = getNextNodeForKey(key);
+			Message removeMessage = new RemoveMessage(
+					AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+					nextNode.getIpAddress(), nextNode.getListenerPort(), path);
+			MessageUtil.sendMessage(removeMessage);
+		}
 
 	}
 

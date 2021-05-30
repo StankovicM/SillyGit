@@ -98,12 +98,12 @@ public class FileUtils {
         File f = new File(path);
         if (!f.exists()) {
             AppConfig.timestampedErrorPrint("Directory " + path + " doesn't exist.");
-            return null;
+            return fileInfoList;
         }
 
         if (f.isFile()) {
             AppConfig.timestampedErrorPrint(path + " is a file and not a directory.");
-            return null;
+            return fileInfoList;
         }
 
         Queue<String> dirs = new LinkedList<>();
@@ -209,6 +209,38 @@ public class FileUtils {
         }
 
         return true;
+
+    }
+
+    /**
+     * Deletes the file or folder with the given path from the root directory as well as
+     * all of the folders above if they are empty.
+     * @param rootDirectory Directory where to perform the deletion.
+     * @param path Path to the file or directory relative to it's root directory.
+     */
+    public static void removeFile(String rootDirectory, String path) {
+
+        //Brisemo fajl
+        String filePath = rootDirectory + "\\" + path;
+        File f = new File(filePath);
+        f.delete();
+
+        //Prodjemo kroz sve njegove nad-direktorijume i obrisemo ih ako su prazni
+        if (path.contains("\\")){
+            path = path.substring(0, path.lastIndexOf('\\'));
+            String[] split = path.split("\\\\");
+            for (int i = split.length - 1; i >= 0; i--) {
+                String dirPath = split[i];
+                for (int j = i - 1; j >=0; j--) {
+                    dirPath = split[j] + "\\" + dirPath;
+                }
+                dirPath = rootDirectory + "\\" + dirPath;
+                File dir = new File(dirPath);
+                if (dir.listFiles().length == 0) {
+                    dir.delete();
+                }
+            }
+        }
 
     }
 

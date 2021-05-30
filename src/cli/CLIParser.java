@@ -14,6 +14,7 @@ import cli.command.SuccessorInfo;
 import servent.SimpleServentListener;
 import sillygit.cli.command.GitAddCommand;
 import sillygit.cli.command.GitPullCommand;
+import sillygit.cli.command.GitRemoveCommand;
 
 /**
  * A simple CLI parser. Each command has a name and arbitrary arguments.
@@ -49,6 +50,8 @@ public class CLIParser implements Runnable, Cancellable {
 
 		commandList.add(new GitAddCommand());
 		commandList.add(new GitPullCommand());
+
+		commandList.add(new GitRemoveCommand());
 	}
 	
 	@Override
