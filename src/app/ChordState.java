@@ -18,10 +18,7 @@ import servent.message.Message;
 import servent.message.PutMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
-import sillygit.servent.message.CommitMessage;
-import sillygit.servent.message.CommitConflictMessage;
-import sillygit.servent.message.CommitSuccessMessage;
-import sillygit.servent.message.RemoveMessage;
+import sillygit.servent.message.*;
 import sillygit.util.FileInfo;
 import sillygit.util.FileUtils;
 
@@ -355,7 +352,7 @@ public class ChordState {
 	 */
 	public void gitAdd(FileInfo fileInfo) {
 
-		int key = ChordState.chordHash(fileInfo.getPath());
+		int key = chordHash(fileInfo.getPath());
 		if (isKeyMine(key)) {
 			//Proverimo da li vec imamo fajl
 			if (!storageMap.containsKey(key)) {
@@ -397,7 +394,7 @@ public class ChordState {
 	 */
 	public FileInfo gitPull(String path, int version, String requesterIp, int requesterPort) {
 
-		int key = ChordState.chordHash(path);
+		int key = chordHash(path);
 		FileInfo toReturn = null;
 		if (isKeyMine(key)) {
 			//Proverimo da li imamo ovaj fajl
@@ -447,7 +444,7 @@ public class ChordState {
 
 	public void addToWorkingMap(FileInfo fileInfo, long lastModified) {
 
-		int key = ChordState.chordHash(fileInfo.getPath());
+		int key = chordHash(fileInfo.getPath());
 		workingMap.put(key, new FileInfo(fileInfo));
 		lastModifiedMap.put(key, lastModified);
 
@@ -464,15 +461,15 @@ public class ChordState {
 
 		int key = ChordState.chordHash(fileInfo.getPath());
 		if (isKeyMine(key)) {
+			String requester = requesterIpAddress + ":" + requesterPort;
+			int nextKey = chordHash(requester);
+			ServentInfo nextNode = getNextNodeForKey(nextKey);
+
 			if (storageMap.containsKey(key)) {
 				//Komitovana verzija je ista kao postojeca, nema konflikta
 				//TODO sinhronizovati sve ove radove sa mapom? Mozda sinhronizovat nad key kao kljucem
 				// Onda ce da to bude iskljucivo samo za svaku stavku pojedinacno kako ne bi mogli nad istom da rade
 				// ali ce moci nad drugima?
-
-				String requester = requesterIpAddress + ":" + requesterPort;
-				int nextKey = ChordState.chordHash(requester);
-
 				if (fileInfo.getVersion() == versionMap.get(key)) {
 					versionMap.compute(key, (mapKey, oldValue) -> oldValue + 1);
 					FileInfo newFileInfo = new FileInfo(fileInfo.getPath(), fileInfo.getContent(), versionMap.get(key));
@@ -480,30 +477,43 @@ public class ChordState {
 
 					//Ako je u pitanju fajl, napravimo ga, a ako je direktorijum, samo cuvamo podatak o njemu
 					if (fileInfo.isFile()) {
-						if (!FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
+						if (FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
+							//Vracamo odgovor originalnom cvoru da je uspesno komitovano kako bi mogao da azurira verziju kod sebe
+							Message successMessage = new CommitSuccessMessage(
+									AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+									nextNode.getIpAddress(), nextNode.getListenerPort(),
+									requesterIpAddress, requesterPort, new FileInfo(newFileInfo));
+							MessageUtil.sendMessage(successMessage);
+						} else {
 							AppConfig.timestampedErrorPrint("Failed to commit " + fileInfo.getPath() + ".");
-
 							//TODO vratiti odgovor originalnom cvoru da nije uspelo
+							//Vracamo kod -2 ako nije uspelo
+							Message errorMessage = new CommitErrorMessage(
+									AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+									nextNode.getIpAddress(), nextNode.getListenerPort(),
+									requesterIpAddress, requesterPort, -2);
+							MessageUtil.sendMessage(errorMessage);
 						}
 					}
-
-					//Vracamo odgovor originalnom cvoru da je uspesno komitovano kako bi mogao da azurira verziju kod sebe
-					ServentInfo nextNode = getNextNodeForKey(nextKey);
-					Message successMessage = new CommitSuccessMessage(
-							AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-							nextNode.getIpAddress(), nextNode.getListenerPort(), new FileInfo(newFileInfo));
-					MessageUtil.sendMessage(successMessage);
 				} else {
 					//Doslo je do konflikta, javiti to originalnom cvoru kako bi mogao da razresi
 					FileInfo oldFileInfo = storageMap.get(key);
-					ServentInfo nextNode = getNextNodeForKey(nextKey);
 					Message conflictMessage = new CommitConflictMessage(
 							AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-							nextNode.getIpAddress(), nextNode.getListenerPort(), oldFileInfo, fileInfo);
+							requesterIpAddress, requesterPort, nextNode.getIpAddress(), nextNode.getListenerPort(),
+							oldFileInfo, fileInfo);
 					MessageUtil.sendMessage(conflictMessage);
 				}
 			} else {
-				AppConfig.timestampedStandardPrint("We have the key, but file " + fileInfo.getPath() + " doesn't exist.");
+				AppConfig.timestampedStandardPrint("We have the key, but file " + fileInfo.getPath() + " doesn't exist");
+
+				//TODO javiti cvoru da bi trebalo prvo add
+				//Vracamo kod -1 ako ne postoji lokalni fajl i trebalo bi uraditi add
+				Message errorMessage = new CommitErrorMessage(
+						AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+						nextNode.getIpAddress(), nextNode.getListenerPort(),
+						requesterIpAddress, requesterPort, -1);
+				MessageUtil.sendMessage(errorMessage);
 			}
 		} else {
 			ServentInfo nextNode = getNextNodeForKey(key);
@@ -511,6 +521,16 @@ public class ChordState {
 					nextNode.getIpAddress(), nextNode.getListenerPort(), fileInfo);
 			MessageUtil.sendMessage(commitMessage);
 		}
+
+	}
+
+	public long getLastModified(String path) {
+
+		int key = chordHash(path);
+		if (!lastModifiedMap.containsKey(key))
+			return -1;
+
+		return lastModifiedMap.get(key);
 
 	}
 
@@ -523,7 +543,7 @@ public class ChordState {
 	 */
 	public void gitRemove(String path) {
 
-		int key = ChordState.chordHash(path);
+		int key = chordHash(path);
 		if (isKeyMine(key)) {
 			if (storageMap.containsKey(key)) {
 				FileInfo fileInfo = storageMap.remove(key);
@@ -536,7 +556,7 @@ public class ChordState {
 					}
 				} else {
 					for (String toRemove : fileInfo.getSubFiles()) {
-						int toRemoveKey = ChordState.chordHash(toRemove);
+						int toRemoveKey = chordHash(toRemove);
 						ServentInfo nextNode = getNextNodeForKey(toRemoveKey);
 						Message removeMessage = new RemoveMessage(
 								AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),

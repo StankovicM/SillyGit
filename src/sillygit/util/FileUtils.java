@@ -253,4 +253,18 @@ public class FileUtils {
 
     }
 
+    public static boolean isModified(String rootDirectory, String path) {
+
+        String filePath = rootDirectory + "\\" + path;
+        File f = new File(filePath);
+
+        if (!f.exists()) {
+            AppConfig.timestampedErrorPrint("File " + path + " doesn't exist.");
+            return false;
+        }
+
+        return f.lastModified() != AppConfig.chordState.getLastModified(path);
+
+    }
+
 }

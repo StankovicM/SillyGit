@@ -2,8 +2,7 @@ package sillygit.cli.command;
 
 import app.AppConfig;
 import cli.command.CLICommand;
-import sillygit.util.FileInfo;
-import sillygit.util.FileUtils;
+import sillygit.util.CommitCollector;
 
 public class GitCommitCommand implements CLICommand {
 
@@ -25,26 +24,8 @@ public class GitCommitCommand implements CLICommand {
          * pa onda da ga opet proverimo prilikom commit-a i ako nije menjan, ne komitujemo
          */
 
-        /* Prekopirano iz GitAddCommand
-        if (FileUtils.isPathFile(AppConfig.WORKING_DIR, path)) {
-            FileInfo fileInfo = FileUtils.getFileInfoFromPath(AppConfig.WORKING_DIR, path);
-            if (fileInfo != null) {
-                AppConfig.chordState.gitAdd(fileInfo);
-            }
-        } else {
-            List<FileInfo> fileInfoList = FileUtils.getDirectoryInfoFromPath(AppConfig.WORKING_DIR, path);
-            if (!fileInfoList.isEmpty()) {
-                for (FileInfo fileInfo : fileInfoList) {
-                    AppConfig.chordState.gitAdd(fileInfo);
-                }
-            }
-        }
-        */
-
-        if (FileUtils.isPathFile(AppConfig.WORKING_DIR, path)) {
-            FileInfo fileInfo = FileUtils.getFileInfoFromPath(AppConfig.WORKING_DIR, path);
-
-        }
+        Thread t = new Thread(new CommitCollector(path));
+        t.start();
 
     }
 
