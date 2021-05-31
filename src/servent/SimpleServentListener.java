@@ -20,7 +20,7 @@ import servent.handler.UpdateHandler;
 import servent.handler.WelcomeHandler;
 import servent.message.Message;
 import servent.message.util.MessageUtil;
-import sillygit.servent.handler.RemoveHandler;
+import sillygit.servent.handler.*;
 
 public class SimpleServentListener implements Runnable, Cancellable {
 
@@ -90,6 +90,18 @@ public class SimpleServentListener implements Runnable, Cancellable {
 					break;
 				case REMOVE:
 					messageHandler = new RemoveHandler(clientMessage);
+					break;
+				case COMMIT:
+					messageHandler = new CommitHandler(clientMessage);
+					break;
+				case COMMIT_CONFLICT:
+					messageHandler = new CommitConflictHandler(clientMessage);
+					break;
+				case COMMIT_SUCCESS:
+					messageHandler = new CommitSuccessHandler(clientMessage);
+					break;
+				case COMMIT_RESOLVE:
+					messageHandler = new CommitResolveHandler(clientMessage);
 					break;
 				case POISON:
 					break;

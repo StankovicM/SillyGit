@@ -12,4 +12,5 @@ public class SorryMessage extends BasicMessage {
 		super(MessageType.SORRY, senderIpAddress, senderPort, receiverIpAddress, receiverPort);
 
 	}
+
 }

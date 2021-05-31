@@ -18,6 +18,9 @@ import servent.message.Message;
 import servent.message.PutMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
+import sillygit.servent.message.CommitMessage;
+import sillygit.servent.message.CommitConflictMessage;
+import sillygit.servent.message.CommitSuccessMessage;
 import sillygit.servent.message.RemoveMessage;
 import sillygit.util.FileInfo;
 import sillygit.util.FileUtils;
@@ -75,6 +78,7 @@ public class ChordState {
 	private Map<Integer, FileInfo> storageMap;
 	private Map<Integer, Integer> versionMap;
 	private Map<Integer, FileInfo> workingMap;
+	private Map<Integer, Long> lastModifiedMap;
 
 	public ChordState() {
 		this.chordLevel = 1;
@@ -98,6 +102,7 @@ public class ChordState {
 		storageMap = new ConcurrentHashMap<>();
 		versionMap = new ConcurrentHashMap<>();
 		workingMap = new ConcurrentHashMap<>();
+		lastModifiedMap = new ConcurrentHashMap<>();
 
 	}
 	
@@ -345,27 +350,31 @@ public class ChordState {
 	 * Adds the file to storage if it's not already present.
 	 * @param fileInfo Object containing all relevent information about the file.
 	 */
+	/*TODO
+	 * I ovde ubaciti requester kako bi mogli da odgovorimo originalnom cvoru da je operacija uspesna
+	 */
 	public void gitAdd(FileInfo fileInfo) {
 
 		int key = ChordState.chordHash(fileInfo.getPath());
 		if (isKeyMine(key)) {
 			//Proverimo da li vec imamo fajl
-			if (storageMap.containsKey(key))
-				AppConfig.timestampedStandardPrint("We already have " + fileInfo.getPath() + ".");
+			if (!storageMap.containsKey(key)) {
+				//Dodajemo kopiju podatka o datoteci
+				storageMap.put(key, new FileInfo(fileInfo));
+				//Verzija bi trebalo da bude 0, nije bitna za direktorijume
+				versionMap.put(key, fileInfo.getVersion());
 
-			//Dodajemo kopiju podatka o datoteci
-			storageMap.put(key, new FileInfo(fileInfo));
-			//Verzija bi trebalo da bude 0, nije bitna za direktorijume
-			versionMap.put(key, fileInfo.getVersion());
-
-			//Ako je u pitanju fajl, napravimo datoteku, a ako je datoteka, samo cuvamo podatak o njoj
-			if (fileInfo.isFile()) {
-				if (!FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
-					AppConfig.timestampedErrorPrint("Failed to store " + fileInfo.getPath() + ".");
+				//Ako je u pitanju fajl, napravimo ga, a ako je direktorijum, samo cuvamo podatak o njemu
+				if (fileInfo.isFile()) {
+					if (!FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
+						AppConfig.timestampedErrorPrint("Failed to store " + fileInfo.getPath() + ".");
+					}
 				}
-			}
 
-			AppConfig.timestampedStandardPrint("File " + fileInfo.getPath() + " stored successfully.");
+				AppConfig.timestampedStandardPrint("File " + fileInfo.getPath() + " stored successfully.");
+			} else {
+				AppConfig.timestampedStandardPrint("We already have " + fileInfo.getPath() + ".");
+			}
 		} else {
 			AppConfig.timestampedStandardPrint("Not our key, forwarding the file " + fileInfo.getPath() + ".");
 
@@ -421,7 +430,7 @@ public class ChordState {
 					}
 				}
 			} else {
-				AppConfig.timestampedStandardPrint("We have the key, but file " + path + "<" + key + "> doesn't exist.");
+				AppConfig.timestampedStandardPrint("We have the key, but file " + path + " doesn't exist.");
 			}
 		} else {
 			AppConfig.timestampedStandardPrint("Not our key, forwarding the pull request for " + path + ", version " + version + ".");
@@ -436,15 +445,81 @@ public class ChordState {
 
 	}
 
-	public void gitCommit() {
+	public void addToWorkingMap(FileInfo fileInfo, long lastModified) {
 
+		int key = ChordState.chordHash(fileInfo.getPath());
+		workingMap.put(key, new FileInfo(fileInfo));
+		lastModifiedMap.put(key, lastModified);
 
+	};
+
+	/*TODO
+	 * Proveriti da li je verzija ista kao nasa, ako jeste, onda nije doslo do konflikta
+	 * Cuvamo podatke o originalnom komiteru kako bi mogli da mu javimo ako je doslo do konflikta
+	 * Mozda bi trebalo napraviti jedan red cekanja, slicno za pull, pa dodavati redom konflikte
+	 * i onda ih obradjivati jedan po jedan na cvoru koji je poceo commit.
+	 * Nakon commit operacije vratiti cvoru poruku da je uspelo sa novom verzijom fajlova.
+	 */
+	public void gitCommit(FileInfo fileInfo, String requesterIpAddress, int requesterPort) {
+
+		int key = ChordState.chordHash(fileInfo.getPath());
+		if (isKeyMine(key)) {
+			if (storageMap.containsKey(key)) {
+				//Komitovana verzija je ista kao postojeca, nema konflikta
+				//TODO sinhronizovati sve ove radove sa mapom? Mozda sinhronizovat nad key kao kljucem
+				// Onda ce da to bude iskljucivo samo za svaku stavku pojedinacno kako ne bi mogli nad istom da rade
+				// ali ce moci nad drugima?
+
+				String requester = requesterIpAddress + ":" + requesterPort;
+				int nextKey = ChordState.chordHash(requester);
+
+				if (fileInfo.getVersion() == versionMap.get(key)) {
+					versionMap.compute(key, (mapKey, oldValue) -> oldValue + 1);
+					FileInfo newFileInfo = new FileInfo(fileInfo.getPath(), fileInfo.getContent(), versionMap.get(key));
+					storageMap.replace(key, newFileInfo);
+
+					//Ako je u pitanju fajl, napravimo ga, a ako je direktorijum, samo cuvamo podatak o njemu
+					if (fileInfo.isFile()) {
+						if (!FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
+							AppConfig.timestampedErrorPrint("Failed to commit " + fileInfo.getPath() + ".");
+
+							//TODO vratiti odgovor originalnom cvoru da nije uspelo
+						}
+					}
+
+					//Vracamo odgovor originalnom cvoru da je uspesno komitovano kako bi mogao da azurira verziju kod sebe
+					ServentInfo nextNode = getNextNodeForKey(nextKey);
+					Message successMessage = new CommitSuccessMessage(
+							AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+							nextNode.getIpAddress(), nextNode.getListenerPort(), new FileInfo(newFileInfo));
+					MessageUtil.sendMessage(successMessage);
+				} else {
+					//Doslo je do konflikta, javiti to originalnom cvoru kako bi mogao da razresi
+					FileInfo oldFileInfo = storageMap.get(key);
+					ServentInfo nextNode = getNextNodeForKey(nextKey);
+					Message conflictMessage = new CommitConflictMessage(
+							AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+							nextNode.getIpAddress(), nextNode.getListenerPort(), oldFileInfo, fileInfo);
+					MessageUtil.sendMessage(conflictMessage);
+				}
+			} else {
+				AppConfig.timestampedStandardPrint("We have the key, but file " + fileInfo.getPath() + " doesn't exist.");
+			}
+		} else {
+			ServentInfo nextNode = getNextNodeForKey(key);
+			Message commitMessage = new CommitMessage(requesterIpAddress, requesterPort,
+					nextNode.getIpAddress(), nextNode.getListenerPort(), fileInfo);
+			MessageUtil.sendMessage(commitMessage);
+		}
 
 	}
 
 	/**
 	 * Removes the specified file or directory from the system.
 	 * @param path Path to the file or directory.
+	 */
+	/*TODO
+	 * I ovde ubaciti requester kako bi mogli da odgovorimo originalnom cvoru da je operacija uspesna
 	 */
 	public void gitRemove(String path) {
 

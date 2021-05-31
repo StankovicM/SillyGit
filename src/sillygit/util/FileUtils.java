@@ -10,6 +10,8 @@ import java.util.Queue;
 
 public class FileUtils {
 
+    public enum StoreType { ADD, PULL }
+
     /**
      * Checks if the given path is a directory.
      * @param rootDirectory Directory where to look for the path.
@@ -165,6 +167,11 @@ public class FileUtils {
             PrintWriter fileWriter = new PrintWriter(new FileWriter(f));
             fileWriter.write(fileInfo.getContent());
             fileWriter.close();
+
+            //Dodajemo fajl u working direktorijum jer je pull-ovan
+            if (!storeVersion) {
+                AppConfig.chordState.addToWorkingMap(fileInfo, f.lastModified());
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -204,6 +211,8 @@ public class FileUtils {
                 }
             } else {
                 //Vec ce biti napravljeni svi potrebni folderi ja mislim
+                //Dodajemo folder u working direktorijum, lastModified nije bitan
+                AppConfig.chordState.addToWorkingMap(fileInfo, 0);
                 pendingFiles.addAll(fileInfo.getSubFiles());
             }
         }
