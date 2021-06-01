@@ -19,11 +19,6 @@ public class GitCommitCommand implements CLICommand {
 
         String path = args.replace('/' , '\\');
 
-        /*TODO
-         * Proveriti da li je fajl bio menjan, mozemo da zabelezimo lastmodified prilikom pull-a,
-         * pa onda da ga opet proverimo prilikom commit-a i ako nije menjan, ne komitujemo
-         */
-
         Thread t = new Thread(new CommitCollector(path));
         t.start();
 

@@ -25,13 +25,13 @@ public class GitAddCommand implements CLICommand {
         if (FileUtils.isPathFile(AppConfig.WORKING_DIR, path)) {
             FileInfo fileInfo = FileUtils.getFileInfoFromPath(AppConfig.WORKING_DIR, path);
             if (fileInfo != null) {
-                AppConfig.chordState.gitAdd(fileInfo);
+                AppConfig.chordState.gitAdd(fileInfo, AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort());
             }
         } else {
             List<FileInfo> fileInfoList = FileUtils.getDirectoryInfoFromPath(AppConfig.WORKING_DIR, path);
             if (!fileInfoList.isEmpty()) {
                 for (FileInfo fileInfo : fileInfoList) {
-                    AppConfig.chordState.gitAdd(fileInfo);
+                    AppConfig.chordState.gitAdd(fileInfo, AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort());
                 }
             }
         }

@@ -18,7 +18,7 @@ public class PutHandler implements MessageHandler {
 		if (clientMessage.getMessageType() == MessageType.PUT) {
 			PutMessage putMessage = (PutMessage) clientMessage;
 
-			AppConfig.chordState.gitAdd(putMessage.getFileInfo());
+			AppConfig.chordState.gitAdd(putMessage.getFileInfo(), putMessage.getSenderIpAddress(), putMessage.getSenderPort());
 		} else {
 			AppConfig.timestampedErrorPrint("Put handler got a message that is not PUT");
 		}

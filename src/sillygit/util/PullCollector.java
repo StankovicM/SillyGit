@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class PullCollector implements Runnable {
 
-    public static final int COLLECTOR_TIMEOUT = 10000;
+    public static final long COLLECTOR_TIMEOUT = 10000;
 
     private static volatile boolean working = true;
 
@@ -48,9 +48,9 @@ public class PullCollector implements Runnable {
         //Pravimo listu FileInfo objekata iz koje cemo posle napraviti celu strukturu direktorijuma i fajlova
         //U working direktorijumu
         List<FileInfo> fileInfoList = new ArrayList<>();
-        int sleepTime = 1;
+        long sleepTime = 1;
 
-        int timeoutCounter = 0;
+        long timeoutCounter = 0;
         boolean timeout = false;
 
         //Vrtimo se u petlji dokle god ima fajlova koje ocekujemo

@@ -31,7 +31,8 @@ public class CommitErrorHandler implements MessageHandler {
                 Message nextErrorMessage = new CommitErrorMessage(
                         errorMessage.getSenderIpAddress(), errorMessage.getSenderPort(),
                         nextNode.getIpAddress(), nextNode.getListenerPort(),
-                        errorMessage.getRequesterIpAddress(), errorMessage.getRequesterPort(), errorMessage.getCode());
+                        errorMessage.getRequesterIpAddress(), errorMessage.getRequesterPort(),
+                        errorMessage.getFileInfo(), errorMessage.getCode());
                 MessageUtil.sendMessage(nextErrorMessage);
             }
         } else {

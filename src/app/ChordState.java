@@ -350,7 +350,7 @@ public class ChordState {
 	/*TODO
 	 * I ovde ubaciti requester kako bi mogli da odgovorimo originalnom cvoru da je operacija uspesna
 	 */
-	public void gitAdd(FileInfo fileInfo) {
+	public void gitAdd(FileInfo fileInfo, String requesterIp, int requesterPort) {
 
 		int key = chordHash(fileInfo.getPath());
 		if (isKeyMine(key)) {
@@ -365,10 +365,19 @@ public class ChordState {
 				if (fileInfo.isFile()) {
 					if (!FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
 						AppConfig.timestampedErrorPrint("Failed to store " + fileInfo.getPath() + ".");
+						return;
 					}
 				}
 
 				AppConfig.timestampedStandardPrint("File " + fileInfo.getPath() + " stored successfully.");
+
+				int nextKey = chordHash(requesterIp + ":" + requesterPort);
+				ServentInfo nextNode = getNextNodeForKey(nextKey);
+				Message successMessage = new AddSuccessMessage(
+						AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+						nextNode.getIpAddress(), nextNode.getListenerPort(),
+						requesterIp, requesterPort, fileInfo);
+				MessageUtil.sendMessage(successMessage);
 			} else {
 				AppConfig.timestampedStandardPrint("We already have " + fileInfo.getPath() + ".");
 			}
@@ -377,7 +386,8 @@ public class ChordState {
 
 			ServentInfo nextNode = getNextNodeForKey(key);
 			PutMessage pm = new PutMessage(
-					AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+					//AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+					requesterIp, requesterPort,
 					nextNode.getIpAddress(), nextNode.getListenerPort(), fileInfo);
 			MessageUtil.sendMessage(pm);
 		}
@@ -471,13 +481,14 @@ public class ChordState {
 				// Onda ce da to bude iskljucivo samo za svaku stavku pojedinacno kako ne bi mogli nad istom da rade
 				// ali ce moci nad drugima?
 				if (fileInfo.getVersion() == versionMap.get(key)) {
-					versionMap.compute(key, (mapKey, oldValue) -> oldValue + 1);
-					FileInfo newFileInfo = new FileInfo(fileInfo.getPath(), fileInfo.getContent(), versionMap.get(key));
+					int newVersion = versionMap.get(key) + 1;
+					FileInfo newFileInfo = new FileInfo(fileInfo.getPath(), fileInfo.getContent(), newVersion);
+					versionMap.replace(key, newVersion);
 					storageMap.replace(key, newFileInfo);
 
 					//Ako je u pitanju fajl, napravimo ga, a ako je direktorijum, samo cuvamo podatak o njemu
 					if (fileInfo.isFile()) {
-						if (FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true)) {
+						if (FileUtils.storeFile(AppConfig.STORAGE_DIR, newFileInfo, true)) {
 							//Vracamo odgovor originalnom cvoru da je uspesno komitovano kako bi mogao da azurira verziju kod sebe
 							Message successMessage = new CommitSuccessMessage(
 									AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
@@ -486,12 +497,12 @@ public class ChordState {
 							MessageUtil.sendMessage(successMessage);
 						} else {
 							AppConfig.timestampedErrorPrint("Failed to commit " + fileInfo.getPath() + ".");
-							//TODO vratiti odgovor originalnom cvoru da nije uspelo
+
 							//Vracamo kod -2 ako nije uspelo
 							Message errorMessage = new CommitErrorMessage(
 									AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
 									nextNode.getIpAddress(), nextNode.getListenerPort(),
-									requesterIpAddress, requesterPort, -2);
+									requesterIpAddress, requesterPort, fileInfo, -2);
 							MessageUtil.sendMessage(errorMessage);
 						}
 					}
@@ -507,12 +518,11 @@ public class ChordState {
 			} else {
 				AppConfig.timestampedStandardPrint("We have the key, but file " + fileInfo.getPath() + " doesn't exist");
 
-				//TODO javiti cvoru da bi trebalo prvo add
 				//Vracamo kod -1 ako ne postoji lokalni fajl i trebalo bi uraditi add
 				Message errorMessage = new CommitErrorMessage(
 						AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
 						nextNode.getIpAddress(), nextNode.getListenerPort(),
-						requesterIpAddress, requesterPort, -1);
+						requesterIpAddress, requesterPort, fileInfo, -1);
 				MessageUtil.sendMessage(errorMessage);
 			}
 		} else {
@@ -531,6 +541,15 @@ public class ChordState {
 			return -1;
 
 		return lastModifiedMap.get(key);
+
+	}
+
+	public void updateLocalWorkingVersion(FileInfo fileInfo, long lastModified) {
+
+		int key = chordHash(fileInfo.getPath());
+
+		workingMap.replace(key, fileInfo);
+		lastModifiedMap.replace(key, lastModified);
 
 	}
 
