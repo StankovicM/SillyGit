@@ -460,16 +460,9 @@ public class ChordState {
 
 	};
 
-	/*TODO
-	 * Proveriti da li je verzija ista kao nasa, ako jeste, onda nije doslo do konflikta
-	 * Cuvamo podatke o originalnom komiteru kako bi mogli da mu javimo ako je doslo do konflikta
-	 * Mozda bi trebalo napraviti jedan red cekanja, slicno za pull, pa dodavati redom konflikte
-	 * i onda ih obradjivati jedan po jedan na cvoru koji je poceo commit.
-	 * Nakon commit operacije vratiti cvoru poruku da je uspelo sa novom verzijom fajlova.
-	 */
 	public void gitCommit(FileInfo fileInfo, String requesterIpAddress, int requesterPort) {
 
-		int key = ChordState.chordHash(fileInfo.getPath());
+		int key = chordHash(fileInfo.getPath());
 		if (isKeyMine(key)) {
 			String requester = requesterIpAddress + ":" + requesterPort;
 			int nextKey = chordHash(requester);
@@ -550,6 +543,32 @@ public class ChordState {
 
 		workingMap.replace(key, fileInfo);
 		lastModifiedMap.replace(key, lastModified);
+
+	}
+
+	public void resolveConflict(FileInfo newFileInfo) {
+
+		int key = chordHash(newFileInfo.getPath());
+		int version = versionMap.get(key);
+		FileInfo fileInfo = new FileInfo(newFileInfo.getPath(), newFileInfo.isDirectory(),
+				newFileInfo.getContent(), version, newFileInfo.getSubFiles());
+
+		storageMap.replace(key, fileInfo);
+
+		if (fileInfo.isFile()) {
+			FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true);
+		}
+
+	}
+
+	public int getWorkingVersion(String path) {
+
+		int key = chordHash(path);
+
+		if (!workingMap.containsKey(key))
+			return -1;
+
+		return workingMap.get(key).getVersion();
 
 	}
 

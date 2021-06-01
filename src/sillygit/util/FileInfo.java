@@ -19,7 +19,7 @@ public class FileInfo implements Serializable {
     private final boolean isDirectory;
     private final List<String> subFiles;
 
-    private FileInfo(String path, boolean isDirectory, String content, int version, List<String> subFiles) {
+    public FileInfo(String path, boolean isDirectory, String content, int version, List<String> subFiles) {
 
         this.path = path;
         this.isDirectory = isDirectory;

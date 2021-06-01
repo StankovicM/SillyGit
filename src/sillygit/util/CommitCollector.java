@@ -23,6 +23,9 @@ public class CommitCollector implements Runnable {
     private static FileInfo conflictOldFile;
     private static FileInfo conflictNewFile;
 
+    private static String conflictStorageIp;
+    private static int conflictStoragePort;
+
     public CommitCollector(String path) {
 
         this.path = path;
@@ -32,14 +35,6 @@ public class CommitCollector implements Runnable {
     @Override
     public void run() {
 
-        /*TODO
-         * Vrtimo se u petlji dokle god ne prodjemo kroz sve foldere i fajlove na datoj putanji.
-         * Ucitavamo ih redom i pozivamo pull u chordstate-u. Kada se pull zavrsi, uspesno ili bezuspesno,
-         * dobijamo poruku. Ako je uspesno obavljen, uklonicemo stavku iz reda, a ako nije,
-         * javimo da je doslo do konflikta i blokiramo se dok korisnik ne izabere neku od opcija
-         */
-
-        //TODO napraviti listu za cekanje odgovora
         List<FileInfo> expectedList = new ArrayList<>();
 
         //Proverimo da li se radi o fajlu ili o direktorijumu
@@ -47,12 +42,13 @@ public class CommitCollector implements Runnable {
             //Ako je u pitanju fajl, proverimo da li je uopste modifikovan
             if (FileUtils.isModified(AppConfig.WORKING_DIR, path)) {
                 //Ucitamo fajl
-                FileInfo fileInfo = FileUtils.getFileInfoFromPath(AppConfig.WORKING_DIR, path);
-                if (fileInfo != null) {
+                FileInfo tmp = FileUtils.getFileInfoFromPath(AppConfig.WORKING_DIR, path);
+                if (tmp != null) {
+                    FileInfo fileInfo = new FileInfo(tmp.getPath(), tmp.isDirectory(), tmp.getContent(),
+                            AppConfig.chordState.getWorkingVersion(path), tmp.getSubFiles());
                     //Komitujemo fajl i dodamo u listu za cekanje odgovora
                     AppConfig.chordState.gitCommit(fileInfo, AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort());
 
-                    //TODO dodati u listu za cekanje odgovora
                     expectedList.add(fileInfo);
                 }
             } else {
@@ -60,31 +56,29 @@ public class CommitCollector implements Runnable {
             }
         } else {
             List<FileInfo> fileInfoList = FileUtils.getDirectoryInfoFromPath(AppConfig.WORKING_DIR, path);
-            //TODO proci kroz listu i za sve fajlove pokusati pull i dodati ih u listu za cekanje odgovora
             if (!fileInfoList.isEmpty()) {
                 //Prodjemo kroz listu FileInfo-a za sve datoteke u direktorijumu
                 for (FileInfo fileInfo : fileInfoList) {
                     if (!working)
                         break;
 
+                    if (fileInfo.isDirectory())
+                        continue;
+
                     //Za svaki slucaj provera
                     if (fileInfo != null) {
-                        AppConfig.chordState.gitCommit(fileInfo, AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort());
+                        //Proverimo da li je fajl menjan
+                        if (FileUtils.isModified(AppConfig.WORKING_DIR, fileInfo.getPath())) {
+                            AppConfig.chordState.gitCommit(fileInfo, AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort());
 
-                        //TODO dodati u listu za cekanje odgovora
-                        expectedList.add(fileInfo);
+                            expectedList.add(fileInfo);
+                        } else {
+                            AppConfig.timestampedStandardPrint(fileInfo.getPath() + " hasn't been modified. Not committing.");
+                        }
                     }
                 }
             }
         }
-
-        /*TODO
-         * Vrteti se u petlji dok se lista za ocekivane odgovore ne isprazni
-         * Ako naidje konflikt blokirati se i pustiti korisnika da odluci o resenju
-         * Ako je u pitanju uspeh samo izbaciti fajl iz reda za ocekivane odgovore
-         * Ako je doslo do greske obavestiti korisnika, ukloniti fajl i nastaviti
-         */
-
 
         long sleepTime = 1;
         long timeoutCounter = 0;
@@ -145,14 +139,13 @@ public class CommitCollector implements Runnable {
                         AppConfig.timestampedErrorPrint("There was a conflict when committing " + newFileInfo + ". Choose your next action: ");
                         conflictOldFile = oldFileInfo;
                         conflictNewFile = newFileInfo;
+                        conflictStorageIp = conflictMessage.getSenderIpAddress();
+                        conflictStoragePort = conflictMessage.getSenderPort();
                         conflicted = true;
                         sleepTime = 1;
                         while (conflicted) {
-                            //TODO napraviti neku strukturu konflikt i u nju dodati potrebne informacije
-                            // i kad korisnik uradi push ili pull, oboriti flag i izvrsiti potrebnu akciju
                             if (!working)
                                 break;
-
 
                             try {
                                 Thread.sleep(sleepTime);
@@ -197,29 +190,39 @@ public class CommitCollector implements Runnable {
 
     public static boolean isConflicted() { return conflicted; }
 
-    public static String getOldContent() {
+    public static FileInfo getOldFile() {
 
-        if (!conflicted)
-            return "No conflict at the moment";
+        if (!conflicted) {
+            AppConfig.timestampedErrorPrint("No conflict at the moment.");
+            return null;
+        }
 
-        return conflictOldFile.getContent();
+        return conflictOldFile;
+
+    }
+
+    public static FileInfo getNewFile() {
+
+        if (!conflicted) {
+            AppConfig.timestampedErrorPrint("No conflict at the moment");
+            return null;
+        }
+
+        return conflictNewFile;
 
     }
 
-    public static String getNewContent() {
+    public static String getConflictStorageIp() { return conflictStorageIp; }
 
-        if (!conflicted)
-            return "No conflict at the moment";
-
-        return conflictNewFile.getContent();
-
-    }
+    public static int getConflictStoragePort() { return conflictStoragePort; }
 
     public static void conflictResolved() {
 
         conflicted = false;
         conflictOldFile = null;
         conflictNewFile = null;
+        conflictStorageIp = "";
+        conflictStoragePort = -1;
 
     }
 
