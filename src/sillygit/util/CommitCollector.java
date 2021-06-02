@@ -8,13 +8,14 @@ import sillygit.servent.message.CommitErrorMessage;
 import sillygit.servent.message.CommitSuccessMessage;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CommitCollector implements Runnable {
 
     private static volatile boolean working = true;
 
     private static final Object pendingMessagesLock = new Object();
-    private static final Queue<Message> pendingMessages = new LinkedList<>();
+    private static final Set<Message> pendingMessages = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     private final String path;
 
@@ -58,7 +59,9 @@ public class CommitCollector implements Runnable {
             List<FileInfo> fileInfoList = FileUtils.getDirectoryInfoFromPath(AppConfig.WORKING_DIR, path);
             if (!fileInfoList.isEmpty()) {
                 //Prodjemo kroz listu FileInfo-a za sve datoteke u direktorijumu
-                for (FileInfo fileInfo : fileInfoList) {
+                for (FileInfo tmp : fileInfoList) {
+                    FileInfo fileInfo = new FileInfo(tmp.getPath(), tmp.isDirectory(), tmp.getContent(),
+                            AppConfig.chordState.getWorkingVersion(tmp.getPath()), tmp.getSubFiles());
                     if (!working)
                         break;
 

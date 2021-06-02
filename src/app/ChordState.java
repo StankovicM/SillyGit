@@ -115,6 +115,10 @@ public class ChordState {
 		this.storageMap = new ConcurrentHashMap<>(welcomeMsg.getStorageMap());
 		this.versionMap = new ConcurrentHashMap<>(welcomeMsg.getVersionMap());
 
+		/*TODO
+		 * Napraviti sve direktorijume koji su prosledjeni i ukloniti ih na cvoru koji je poslao welcome
+		 */
+
 		//tell bootstrap this node is not a collider
 		try {
 			Socket bsSocket = new Socket(AppConfig.BOOTSTRAP_ADDRESS, AppConfig.BOOTSTRAP_PORT);
