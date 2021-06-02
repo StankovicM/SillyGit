@@ -115,11 +115,19 @@ public class ChordState {
 		this.storageMap = new ConcurrentHashMap<>(welcomeMsg.getStorageMap());
 		this.versionMap = new ConcurrentHashMap<>(welcomeMsg.getVersionMap());
 
-		/*TODO
-		 * Napraviti sve direktorijume koji su prosledjeni i ukloniti ih na cvoru koji je poslao welcome
-		 */
+		//Kreiramo sve fajlove u nasem skladistu kao i njihove stare verzije
+		for (Map.Entry<Integer, FileInfo> m : storageMap.entrySet()) {
+			if (m.getValue().isFile()) {
+				FileUtils.storeFile(AppConfig.STORAGE_DIR, m.getValue(), true);
 
-
+				int key = chordHash(m.getValue().getPath());
+				if (welcomeMsg.getOldVersions().containsKey(key)) {
+					for (FileInfo fileInfo : welcomeMsg.getOldVersions().get(key)) {
+						FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true);
+					}
+				}
+			}
+		}
 
 		//tell bootstrap this node is not a collider
 		try {

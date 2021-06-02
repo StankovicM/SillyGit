@@ -1,10 +1,13 @@
 package servent.handler;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import app.AppConfig;
+import app.ChordState;
 import app.ServentInfo;
 import servent.message.Message;
 import servent.message.MessageType;
@@ -13,6 +16,7 @@ import servent.message.SorryMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
 import sillygit.util.FileInfo;
+import sillygit.util.FileUtils;
 
 public class NewNodeHandler implements MessageHandler {
 
@@ -99,10 +103,37 @@ public class NewNodeHandler implements MessageHandler {
 				}
 				AppConfig.chordState.setStorageMap(myStorage);
 				AppConfig.chordState.setVersionMap(myVersions);
-				
+
+				//Brisemo sve uskaldistene verzije za fajlove koje predajemo novom cvoru,
+				//a stare verzije ucitavamo i takodje saljemo pre brisanja
+				Map<Integer, List<FileInfo>> oldVersions = new HashMap<>();
+				for (Map.Entry<Integer, FileInfo> m : hisStorage.entrySet()) {
+					int version = hisVersions.get(m.getKey());
+					for (int i = version; i >= 0; i--) {
+						//Putanja do verzije fajla
+						String filePath = m.getValue().getPath() + "." + i;
+						//Ucitavamo samo starije verzije
+						if (i < version) {
+							//Ucitamo fajl
+							FileInfo tmp = FileUtils.getFileInfoFromPath(AppConfig.STORAGE_DIR, filePath);
+							if (tmp != null && tmp.isFile()) {
+								//Postavimo odgovarajucu verziju i putanju bez verzije
+								FileInfo fileInfo = new FileInfo(m.getValue().getPath(), tmp.isDirectory(), tmp.getContent(),
+										i, tmp.getSubFiles());
+								//Dodamo fajl u odgovarajucu listu
+								int key = ChordState.chordHash(fileInfo.getPath());
+								oldVersions.putIfAbsent(key, new ArrayList<>());
+								oldVersions.get(key).add(fileInfo);
+							}
+						}
+						//Izbrisemo fajl nakon ucitavanja
+						FileUtils.removeFile(AppConfig.STORAGE_DIR, filePath);
+					}
+				}
+
 				WelcomeMessage wm = new WelcomeMessage(
 						AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-						newNodeIp, newNodePort, hisStorage, hisVersions);
+						newNodeIp, newNodePort, hisStorage, hisVersions, oldVersions);
 				MessageUtil.sendMessage(wm);
 			} else { //if he is not my predecessor, let someone else take care of it
 				ServentInfo nextNode = AppConfig.chordState.getNextNodeForKey(newNodeInfo.getChordId());
