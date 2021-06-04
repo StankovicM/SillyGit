@@ -15,6 +15,7 @@ import servent.message.NewNodeMessage;
 import servent.message.SorryMessage;
 import servent.message.WelcomeMessage;
 import servent.message.util.MessageUtil;
+import sillygit.mutex.TokenMutex;
 import sillygit.util.FileInfo;
 import sillygit.util.FileUtils;
 
@@ -45,6 +46,14 @@ public class NewNodeHandler implements MessageHandler {
 			//check if he is my predecessor
 			boolean isMyPred = AppConfig.chordState.isKeyMine(newNodeInfo.getChordId());
 			if (isMyPred) { //if yes, prepare and send welcome message
+				//TODO omoguciti da se ovo izvrsava samo na jednom cvoru u jednom trenutku kako bi se
+				// izbeglo prepisivanje ili gubljenje nekih successor-a i slicnih informacija
+				// Ovde cemo da pozovemo lock, a nas prethodnik ce po prijemu update poruke da nam javi da
+				// se uspesno ukljucio pa cemo pozvati unlock
+
+				//Pozivamo mutex lock
+				TokenMutex.lock();
+
 				ServentInfo hisPred = AppConfig.chordState.getPredecessor();
 				if (hisPred == null) {
 					hisPred = AppConfig.myServentInfo;

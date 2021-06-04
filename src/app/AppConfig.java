@@ -43,6 +43,7 @@ public class AppConfig {
 	}
 	
 	public static boolean INITIALIZED = false;
+	public static boolean CAN_QUIT = false;
 
 	public static String BOOTSTRAP_ADDRESS;
 	public static int BOOTSTRAP_PORT;

@@ -9,15 +9,10 @@ import java.util.concurrent.Executors;
 
 import app.AppConfig;
 import app.Cancellable;
-import servent.handler.AskGetHandler;
-import servent.handler.MessageHandler;
-import servent.handler.NewNodeHandler;
-import servent.handler.NullHandler;
-import servent.handler.PutHandler;
-import servent.handler.SorryHandler;
-import servent.handler.TellGetHandler;
-import servent.handler.UpdateHandler;
-import servent.handler.WelcomeHandler;
+import servent.handler.*;
+import sillygit.servent.handler.AskPullHandler;
+import sillygit.servent.handler.AddHandler;
+import sillygit.servent.handler.TellPullHandler;
 import servent.message.Message;
 import servent.message.util.MessageUtil;
 import sillygit.servent.handler.*;
@@ -67,6 +62,9 @@ public class SimpleServentListener implements Runnable, Cancellable {
 				 * because that way is much simpler and less error prone.
 				 */
 				switch (clientMessage.getMessageType()) {
+				case TOKEN:
+					messageHandler = new TokenHandler(clientMessage);
+					break;
 				case NEW_NODE:
 					messageHandler = new NewNodeHandler(clientMessage);
 					break;
@@ -79,14 +77,26 @@ public class SimpleServentListener implements Runnable, Cancellable {
 				case UPDATE:
 					messageHandler = new UpdateHandler(clientMessage);
 					break;
-				case PUT:
-					messageHandler = new PutHandler(clientMessage);
+				case JOINED:
+					messageHandler = new JoinedHandler(clientMessage);
 					break;
-				case ASK_GET:
-					messageHandler = new AskGetHandler(clientMessage);
+				case QUIT:
+					messageHandler = new NodeQuitHandler(clientMessage);
 					break;
-				case TELL_GET:
-					messageHandler = new TellGetHandler(clientMessage);
+				case QUIT_PREDECESSOR:
+					messageHandler = new NodeQuitPredecessorHandler(clientMessage);
+					break;
+				case QUIT_OK:
+					messageHandler = new NodeQuitOkHandler(clientMessage);
+					break;
+				case ADD:
+					messageHandler = new AddHandler(clientMessage);
+					break;
+				case ASK_PULL:
+					messageHandler = new AskPullHandler(clientMessage);
+					break;
+				case TELL_PULL:
+					messageHandler = new TellPullHandler(clientMessage);
 					break;
 				case REMOVE:
 					messageHandler = new RemoveHandler(clientMessage);

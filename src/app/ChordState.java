@@ -13,10 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import servent.message.AskGetMessage;
-import servent.message.Message;
-import servent.message.PutMessage;
-import servent.message.WelcomeMessage;
+import servent.message.*;
+import sillygit.servent.message.AskPullMessage;
+import sillygit.servent.message.AddMessage;
 import servent.message.util.MessageUtil;
 import sillygit.servent.message.*;
 import sillygit.util.FileInfo;
@@ -143,6 +142,75 @@ public class ChordState {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * This should be called when this node's predecessor wants to quit. Will take over his storage and
+	 * update all the successors and predecessors.
+	 * @param quitMessage Message containing all of the storage information from the node
+	 *                    that is quitting.
+	 */
+	public void update(NodeQuitMessage quitMessage) {
+
+		//Kopiranje podataka prethodnika
+		Map<Integer, FileInfo> hisStorage = quitMessage.getStorageMap();
+		Map<Integer, Integer> hisVersions = quitMessage.getVersionMap();
+
+		for (Map.Entry<Integer, FileInfo> m : hisStorage.entrySet()) {
+			int key = chordHash(m.getValue().getPath());
+
+			//Prepisemo sve vrenosti naseg bivseg prethodnika u svoju mapu
+			storageMap.put(key, m.getValue());
+			versionMap.put(key, hisVersions.get(key));
+
+			//Zapisemo trenutnu verziju
+			FileUtils.storeFile(AppConfig.STORAGE_DIR, m.getValue(), true);
+
+			//Zapisemo sve prethodne verzije
+			if (quitMessage.getOldVersions().containsKey(key)) {
+				for (FileInfo fileInfo : quitMessage.getOldVersions().get(key)) {
+					FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true);
+				}
+			}
+		}
+
+		//Postavimo njegovog prethodnika kao naseg
+		predecessorInfo = quitMessage.getPredecessorInfo();
+
+		//Javimo prethodniku da smo mi njegov novi sledeci
+		Message predecessorMessage = new NodeQuitPredecessorMessage(
+				AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+				predecessorInfo.getIpAddress(), predecessorInfo.getListenerPort(),
+				new ServentInfo(quitMessage.getSenderIpAddress(), quitMessage.getSenderPort()));
+		MessageUtil.sendMessage(predecessorMessage);
+
+		//TODO poslati update poruku svima da se iskljucio nas prethodnik i da smo mi sad vlasnik njegovih kljuceva
+
+	}
+
+	/**
+	 * Removes the quitting successor and updates the successor table.
+	 * @param predMessage Message containing information about the quitting node.
+	 */
+	public void removeNode(NodeQuitPredecessorMessage predMessage) {
+
+		List<ServentInfo> newAllNodeInfo = new ArrayList<>();
+		for (ServentInfo info : allNodeInfo) {
+			if (info.getChordId() == predMessage.getPreviousSuccessor().getChordId())
+				continue;
+
+			newAllNodeInfo.add(info);
+		}
+
+		allNodeInfo.clear();
+		addNodes(newAllNodeInfo);
+
+		//Javljamo bivsem sledecem da moze da se iskljuci
+		Message okMessage = new NodeQuitOkMessage(AppConfig.myServentInfo.getIpAddress(),
+				AppConfig.myServentInfo.getListenerPort(), predMessage.getPreviousSuccessor().getIpAddress(),
+				predMessage.getPreviousSuccessor().getListenerPort());
+		MessageUtil.sendMessage(okMessage);
+
 	}
 	
 	public int getChordLevel() {
@@ -313,7 +381,6 @@ public class ChordState {
 				}
 			}
 		}
-		
 	}
 
 	/**
@@ -399,7 +466,7 @@ public class ChordState {
 			AppConfig.timestampedStandardPrint("Not our key, forwarding the file " + fileInfo.getPath() + ".");
 
 			ServentInfo nextNode = getNextNodeForKey(key);
-			PutMessage pm = new PutMessage(
+			AddMessage pm = new AddMessage(
 					//AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
 					requesterIp, requesterPort,
 					nextNode.getIpAddress(), nextNode.getListenerPort(), fileInfo);
@@ -457,7 +524,7 @@ public class ChordState {
 			AppConfig.timestampedStandardPrint("Not our key, forwarding the pull request for " + path + ", version " + version + ".");
 
 			ServentInfo nextNode = getNextNodeForKey(key);
-			Message askMessage = new AskGetMessage(requesterIp, requesterPort,
+			Message askMessage = new AskPullMessage(requesterIp, requesterPort,
 					nextNode.getIpAddress(), nextNode.getListenerPort(), path, version);
 			MessageUtil.sendMessage(askMessage);
 		}

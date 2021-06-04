@@ -6,6 +6,7 @@ import java.util.List;
 import app.AppConfig;
 import app.ChordState;
 import app.ServentInfo;
+import servent.message.JoinedMessage;
 import servent.message.Message;
 import servent.message.MessageType;
 import servent.message.UpdateMessage;
@@ -52,6 +53,14 @@ public class UpdateHandler implements MessageHandler {
 					allNodes.add(new ServentInfo(serventIp, serventPort));
 				}
 				AppConfig.chordState.addNodes(allNodes);
+
+				//Zavrsili smo ukljucivanje, javimo nasem sledbeniku da moze da pozove mutex unlock
+				String successorIp = AppConfig.chordState.getNextNodeIp();
+				int successorPort = AppConfig.chordState.getNextNodePort();
+				Message joinedMessage = new JoinedMessage(
+						AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+						successorIp, successorPort);
+				MessageUtil.sendMessage(joinedMessage);
 			}
 		} else {
 			AppConfig.timestampedErrorPrint("Update message handler got message that is not UPDATE");

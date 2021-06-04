@@ -3,12 +3,12 @@ package app;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
 import servent.message.NewNodeMessage;
 import servent.message.util.MessageUtil;
+import sillygit.mutex.TokenMutex;
 
 public class ServentInitializer implements Runnable {
 
@@ -51,6 +51,7 @@ public class ServentInitializer implements Runnable {
 		//We are the first node in the system
 		if (someServent == null) {
 			AppConfig.timestampedStandardPrint("First node in Chord system.");
+			TokenMutex.init();
 		//Bootstrap gave us ip:port of a node - let that node tell our successor that we are here
 		} else {
 			String someServentIp = someServent.substring(0, someServent.indexOf(':'));
