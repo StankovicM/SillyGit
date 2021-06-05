@@ -15,7 +15,10 @@ public class NodeQuitHandler implements MessageHandler {
     public void run() {
 
         if (clientMessage.getMessageType() == MessageType.QUIT) {
-            AppConfig.chordState.update((NodeQuitMessage) clientMessage);
+            NodeQuitMessage quitMessage = (NodeQuitMessage) clientMessage;
+            AppConfig.chordState.updateStorage(quitMessage.getStorageMap(), quitMessage.getVersionMap(),
+                    quitMessage.getOldVersions());
+            AppConfig.chordState.updatePredecessor(quitMessage.getPredecessorInfo());
         } else {
             AppConfig.timestampedErrorPrint("Quit handler got message that's not of type QUIT.");
         }

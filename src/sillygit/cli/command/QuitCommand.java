@@ -2,11 +2,11 @@ package sillygit.cli.command;
 
 import app.AppConfig;
 import app.ChordState;
+import app.ServentInfo;
 import cli.CLIParser;
 import cli.command.CLICommand;
 import servent.SimpleServentListener;
-import servent.message.Message;
-import servent.message.NodeQuitMessage;
+import servent.message.*;
 import servent.message.util.MessageUtil;
 import sillygit.mutex.TokenMutex;
 import sillygit.util.CommitCollector;
@@ -44,7 +44,7 @@ public class QuitCommand implements CLICommand {
         //mutex lock
         TokenMutex.lock();
 
-        //Postavimo flag za iskljucivanje i pocnemo proceduru
+        //Postavimo flag i zapocinjemo proceduru
         AppConfig.CAN_QUIT = false;
 
         Map<Integer, FileInfo> storage = AppConfig.chordState.getStorageMap();
@@ -71,14 +71,12 @@ public class QuitCommand implements CLICommand {
                 //FileUtils.removeFile(AppConfig.STORAGE_DIR, filePath);
             }
         }
-
-        //Javimo svom sledbeniku da se gasimo, saljemo mu svoje skladiste i svog prethodnika
+        //Saljemo direktnom sledbeniku svoje skladiste
         String successorIp = AppConfig.chordState.getNextNodeIp();
         int successorPort = AppConfig.chordState.getNextNodePort();
-        Message quitMessage = new NodeQuitMessage(
-                AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-                successorIp, successorPort, AppConfig.chordState.getPredecessor(),
-                storage, versions, oldVersions);
+        Message quitMessage = new NodeQuitMessage(AppConfig.myServentInfo.getIpAddress(),
+                AppConfig.myServentInfo.getListenerPort(), successorIp, successorPort,
+                AppConfig.chordState.getPredecessor(), storage, versions, oldVersions);
         MessageUtil.sendMessage(quitMessage);
 
         //Cekamo da nam stigne odgovor od prethodnika da je u redu da se ugasimo

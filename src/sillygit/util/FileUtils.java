@@ -245,7 +245,7 @@ public class FileUtils {
                 }
                 dirPath = rootDirectory + "\\" + dirPath;
                 File dir = new File(dirPath);
-                if (dir.listFiles().length == 0) {
+                if (dir != null && dir.listFiles() != null && dir.listFiles().length == 0) {
                     dir.delete();
                 }
             }

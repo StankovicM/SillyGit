@@ -40,9 +40,9 @@ public class TokenMutex {
         token = false;
         wantLock = false;
 
-        localUnlock();
-
         sendToken();
+
+        localUnlock();
 
     }
 
@@ -57,6 +57,19 @@ public class TokenMutex {
     }
 
     private static void sendToken() {
+
+        /*long sleepTime = 1;
+        while (true) {
+            if (!AppConfig.ALONE)
+                break;
+
+            try {
+                Thread.sleep(sleepTime);
+                sleepTime = (sleepTime * 2) > 100 ? 100 : (sleepTime * 2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }*/
 
         String nextNodeIp = AppConfig.chordState.getNextNodeIp();
         int nextNodePort = AppConfig.chordState.getNextNodePort();

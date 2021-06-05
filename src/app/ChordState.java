@@ -147,14 +147,13 @@ public class ChordState {
 	/**
 	 * This should be called when this node's predecessor wants to quit. Will take over his storage and
 	 * update all the successors and predecessors.
-	 * @param quitMessage Message containing all of the storage information from the node
-	 *                    that is quitting.
 	 */
-	public void update(NodeQuitMessage quitMessage) {
+	public void updateStorage(Map<Integer, FileInfo> storageMap, Map<Integer, Integer> versionMap,
+							  Map<Integer, List<FileInfo>> oldVersions) {
 
 		//Kopiranje podataka prethodnika
-		Map<Integer, FileInfo> hisStorage = quitMessage.getStorageMap();
-		Map<Integer, Integer> hisVersions = quitMessage.getVersionMap();
+		Map<Integer, FileInfo> hisStorage = storageMap;
+		Map<Integer, Integer> hisVersions = versionMap;
 
 		for (Map.Entry<Integer, FileInfo> m : hisStorage.entrySet()) {
 			int key = chordHash(m.getValue().getPath());
@@ -167,49 +166,36 @@ public class ChordState {
 			FileUtils.storeFile(AppConfig.STORAGE_DIR, m.getValue(), true);
 
 			//Zapisemo sve prethodne verzije
-			if (quitMessage.getOldVersions().containsKey(key)) {
-				for (FileInfo fileInfo : quitMessage.getOldVersions().get(key)) {
+			if (oldVersions.containsKey(key)) {
+				for (FileInfo fileInfo : oldVersions.get(key)) {
 					FileUtils.storeFile(AppConfig.STORAGE_DIR, fileInfo, true);
 				}
 			}
 		}
 
-		//Postavimo njegovog prethodnika kao naseg
-		predecessorInfo = quitMessage.getPredecessorInfo();
+	}
 
-		//Javimo prethodniku da smo mi njegov novi sledeci
+	public void updatePredecessor(ServentInfo predecessorInfo) {
+
+		this.predecessorInfo = predecessorInfo;
+
 		Message predecessorMessage = new NodeQuitPredecessorMessage(
 				AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
-				predecessorInfo.getIpAddress(), predecessorInfo.getListenerPort(),
-				new ServentInfo(quitMessage.getSenderIpAddress(), quitMessage.getSenderPort()));
+				predecessorInfo.getIpAddress(), predecessorInfo.getListenerPort());
 		MessageUtil.sendMessage(predecessorMessage);
-
-		//TODO poslati update poruku svima da se iskljucio nas prethodnik i da smo mi sad vlasnik njegovih kljuceva
 
 	}
 
-	/**
-	 * Removes the quitting successor and updates the successor table.
-	 * @param predMessage Message containing information about the quitting node.
-	 */
-	public void removeNode(NodeQuitPredecessorMessage predMessage) {
+	public void updateSuccessor(ServentInfo successorInfo) {
 
-		List<ServentInfo> newAllNodeInfo = new ArrayList<>();
-		for (ServentInfo info : allNodeInfo) {
-			if (info.getChordId() == predMessage.getPreviousSuccessor().getChordId())
-				continue;
+		String previousSuccessorIp = getNextNodeIp();
+		int previousSuccessorPort = getNextNodePort();
 
-			newAllNodeInfo.add(info);
-		}
+		successorTable[0] = successorInfo;
 
-		allNodeInfo.clear();
-		addNodes(newAllNodeInfo);
-
-		//Javljamo bivsem sledecem da moze da se iskljuci
-		Message okMessage = new NodeQuitOkMessage(AppConfig.myServentInfo.getIpAddress(),
-				AppConfig.myServentInfo.getListenerPort(), predMessage.getPreviousSuccessor().getIpAddress(),
-				predMessage.getPreviousSuccessor().getListenerPort());
-		MessageUtil.sendMessage(okMessage);
+		Message quitOkMessage = new NodeQuitOkMessage(AppConfig.myServentInfo.getIpAddress(),
+				AppConfig.myServentInfo.getListenerPort(), previousSuccessorIp, previousSuccessorPort);
+		MessageUtil.sendMessage(quitOkMessage);
 
 	}
 	
@@ -427,9 +413,6 @@ public class ChordState {
 	/**
 	 * Adds the file to storage if it's not already present.
 	 * @param fileInfo Object containing all relevent information about the file.
-	 */
-	/*TODO
-	 * I ovde ubaciti requester kako bi mogli da odgovorimo originalnom cvoru da je operacija uspesna
 	 */
 	public void gitAdd(FileInfo fileInfo, String requesterIp, int requesterPort) {
 
