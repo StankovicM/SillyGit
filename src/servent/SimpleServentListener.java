@@ -89,6 +89,9 @@ public class SimpleServentListener implements Runnable, Cancellable {
 				case QUIT_OK:
 					messageHandler = new NodeQuitOkHandler(clientMessage);
 					break;
+				case QUIT_UPDATE:
+					messageHandler = new NodeQuitUpdateHandler(clientMessage);
+					break;
 				case ADD:
 					messageHandler = new AddHandler(clientMessage);
 					break;

@@ -193,9 +193,32 @@ public class ChordState {
 
 		successorTable[0] = successorInfo;
 
+		//Saljemo poruku cvoru koji se iskljucuje da moze bezbedno to da uradi
 		Message quitOkMessage = new NodeQuitOkMessage(AppConfig.myServentInfo.getIpAddress(),
 				AppConfig.myServentInfo.getListenerPort(), previousSuccessorIp, previousSuccessorPort);
 		MessageUtil.sendMessage(quitOkMessage);
+
+		//Saljemo update poruku celom sistemu da izbace cvor
+		System.out.println(getNextNodeIp() + ":" + getNextNodePort());
+		Message updateMessage = new NodeQuitUpdateMessage(
+				AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+				getNextNodeIp(), getNextNodePort(), new ServentInfo(previousSuccessorIp, previousSuccessorPort));
+		MessageUtil.sendMessage(updateMessage);
+
+	}
+
+	public void removeNode(ServentInfo node) {
+
+		List<ServentInfo> newAllNodeInfo = new ArrayList<>();
+		for (ServentInfo serventInfo : allNodeInfo) {
+			if (serventInfo.getChordId() == node.getChordId())
+				continue;
+
+			newAllNodeInfo.add(serventInfo);
+		}
+
+		allNodeInfo.clear();
+		addNodes(newAllNodeInfo);
 
 	}
 	

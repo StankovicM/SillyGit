@@ -74,9 +74,10 @@ public class QuitCommand implements CLICommand {
         //Saljemo direktnom sledbeniku svoje skladiste
         String successorIp = AppConfig.chordState.getNextNodeIp();
         int successorPort = AppConfig.chordState.getNextNodePort();
-        Message quitMessage = new NodeQuitMessage(AppConfig.myServentInfo.getIpAddress(),
-                AppConfig.myServentInfo.getListenerPort(), successorIp, successorPort,
-                AppConfig.chordState.getPredecessor(), storage, versions, oldVersions);
+        Message quitMessage = new NodeQuitMessage(
+                AppConfig.myServentInfo.getIpAddress(), AppConfig.myServentInfo.getListenerPort(),
+                successorIp, successorPort, AppConfig.chordState.getPredecessor(),
+                storage, versions, oldVersions);
         MessageUtil.sendMessage(quitMessage);
 
         //Cekamo da nam stigne odgovor od prethodnika da je u redu da se ugasimo
